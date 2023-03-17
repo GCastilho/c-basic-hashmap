@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 int hash_char_array(char key[]) {
 	int sum = 0;
@@ -53,6 +54,21 @@ int set_hashmap(HashMap *hash_map, char key[], char value[]) {
 	return idx;
 }
 
+char* get_hashmap(HashMap *hash_map, char key[]) {
+	int idx = hash_char_array(key) % hash_map->capacity;
+	Node *node = hash_map->items[idx];
+	if (node == NULL) {
+		return NULL;
+	}
+	while (node != NULL) {
+		if (strcmp(key, node->value->key) == 0) {
+			return node->value->value;
+		}
+		node = node->next;
+	}
+	return NULL;
+}
+
 int main(int argc, char const *argv[]) {
 	int capacity = 10;
 	HashMap hash_map = new_hash_map(capacity);
@@ -80,6 +96,9 @@ int main(int argc, char const *argv[]) {
 		hash_map.items[idx]->next->next->value->key,
 		hash_map.items[idx]->next->next->value->value
 	);
+
+	char *value = get_hashmap(&hash_map, "key-the-this-is");
+	printf("found: %s\n", value);
 
 	return 0;
 }
