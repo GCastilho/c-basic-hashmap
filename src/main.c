@@ -57,9 +57,6 @@ int set_hashmap(HashMap *hash_map, char key[], char value[]) {
 char* get_hashmap(HashMap *hash_map, char key[]) {
 	int idx = hash_char_array(key) % hash_map->capacity;
 	Node *node = hash_map->items[idx];
-	if (node == NULL) {
-		return NULL;
-	}
 	while (node != NULL) {
 		if (strcmp(key, node->value->key) == 0) {
 			return node->value->value;
@@ -67,6 +64,23 @@ char* get_hashmap(HashMap *hash_map, char key[]) {
 		node = node->next;
 	}
 	return NULL;
+}
+
+int del_hashmap(HashMap *hash_map, char key[]) {
+	int idx = hash_char_array(key) % hash_map->capacity;
+	Node *head = hash_map->items[idx];
+	Node *previous;
+	while (head != NULL) {
+		if (strcmp(key, head->value->key) == 0) {
+			previous->next = head->next;
+			// Maybe there is a leak here bc key&val are not freed
+			free(head);
+			return 1;
+		}
+		previous = head;
+		head = head->next;
+	}
+	return 0;
 }
 
 int main(int argc, char const *argv[]) {
@@ -99,6 +113,14 @@ int main(int argc, char const *argv[]) {
 
 	char *value = get_hashmap(&hash_map, "key-the-this-is");
 	printf("found: %s\n", value);
+
+	value = get_hashmap(&hash_map, "not-stored");
+	printf("found (do not exist): %s\n", value);
+
+	int del = del_hashmap(&hash_map, "key-the-this-is");
+	printf("del is %d\n", del);
+	value = get_hashmap(&hash_map, "key-the-this-is");
+	printf("found (deleted): %s\n", value);
 
 	return 0;
 }
