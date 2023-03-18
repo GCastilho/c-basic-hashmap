@@ -23,14 +23,30 @@ typedef struct Node {
 
 typedef struct HashMap {
 	size_t capacity;
+	size_t length;
 	Node* *items;
 } HashMap;
 
 HashMap new_hash_map(int capacity) {
 	HashMap hash_map;
 	hash_map.capacity = capacity;
+	hash_map.length = 0;
 	hash_map.items = malloc(sizeof(Node*) * capacity);
 	return hash_map;
+}
+
+void double_hashmap(HashMap *hash_map) {
+	HashMap doubled_hash_map = new_hash_map(hash_map->capacity * 2);
+	for (size_t i = 0; i < hash_map->capacity; i++) {
+		Node *head = hash_map->items[i];
+		while (head != NULL) {
+			set_hashmap(&doubled_hash_map, head->value->key, head->value->value);
+			head = head->next;
+		}
+	}
+	free(hash_map->items);
+	hash_map->capacity = doubled_hash_map.capacity;
+	hash_map->items = doubled_hash_map.items;
 }
 
 int set_hashmap(HashMap *hash_map, char key[], char value[]) {
@@ -39,6 +55,11 @@ int set_hashmap(HashMap *hash_map, char key[], char value[]) {
 	item->value = value;
 	Node *node = malloc(sizeof(Node));
 	node->value = item;
+
+	float filled = (float)hash_map->length / (float)hash_map->capacity;
+	if (filled > 0.7) {
+		double_hashmap(hash_map);
+	}
 
 	int idx = hash_char_array(key) % hash_map->capacity;
 	Node *stored_node = hash_map->items[idx];
@@ -50,6 +71,7 @@ int set_hashmap(HashMap *hash_map, char key[], char value[]) {
 		}
 		stored_node->next = node;
 	}
+	hash_map->length++;
 
 	return idx;
 }
@@ -75,12 +97,21 @@ int del_hashmap(HashMap *hash_map, char key[]) {
 			previous->next = head->next;
 			// Maybe there is a leak here bc key&val are not freed
 			free(head);
+			hash_map->length--;
 			return 1;
 		}
 		previous = head;
 		head = head->next;
 	}
 	return 0;
+}
+
+void add_and_print(HashMap *hash_map, char key[], char *value) {
+	int idx = set_hashmap(hash_map, key, value);
+	printf(
+		"Added to index %d: key %s value: %s\nFilled: %d/%d\n",
+		idx, key, value, hash_map->length, hash_map->capacity
+	);
 }
 
 int main(int argc, char const *argv[]) {
@@ -121,6 +152,14 @@ int main(int argc, char const *argv[]) {
 	printf("del is %d\n", del);
 	value = get_hashmap(&hash_map, "key-the-this-is");
 	printf("found (deleted): %s\n", value);
+
+	printf("HashMap size: %i | length: %i\n", hash_map.capacity, hash_map.length);
+
+	for (size_t i = 0; i < 25; i++) {
+		char str[3];
+		sprintf(str, "%d", i);
+		add_and_print(&hash_map, str, str);
+	}
 
 	return 0;
 }
